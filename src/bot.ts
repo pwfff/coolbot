@@ -1,17 +1,19 @@
 import { EventEmitter } from 'events';
-
-import chokidar from 'chokidar';
-import decache from 'decache';
-
-import { IRCClientOptions, IRCClient } from './irc/client';
-import { IRCClientManager } from './irc/manager';
-import { IRCMessage } from './irc/message';
 import path from 'path';
 
+import chokidar from 'chokidar';
+import PouchDB from 'pouchdb';
+
+import decache from './util/decache';
+import { IRCClientOptions, IRCClient, ChannelConfig } from './irc/client';
+import { IRCClientManager } from './irc/manager';
+import { IRCMessage } from './irc/message';
+
 export interface BotConfig {
-  irc?: {
-    clients: IRCClientOptions[];
+  clients: {
+    irc: IRCClientOptions[];
   };
+  config: { [key: string]: any };
 }
 
 export type RegisterHandler = (handlers: {
@@ -25,9 +27,14 @@ type Protocol = 'irc';
 
 type Message = IRCMessage | null;
 
+type FilterHandlerCallback = (
+  message: Message,
+  context?: { [key: string]: any },
+) => Message;
+
 type FilterHandler = {
   name: string;
-  handler: (message: Message, context?: { [key: string]: any }) => Message;
+  handler: FilterHandlerCallback;
 };
 
 type FilterCollection = {
@@ -38,8 +45,9 @@ export type CommandHandlerCallback = (
   context: IRCContext,
   message: IRCMessage,
   input: string,
-  config: BotConfig,
-) => void;
+  client: IRCClientOptions,
+  config: Record<string, any>,
+) => Promise<void>;
 
 export type CommandHandler = {
   name: string;
@@ -54,8 +62,9 @@ type CommandCollection = {
 export type RegexHandlerCallback = (
   context: IRCContext,
   message: IRCMessage,
-  config: BotConfig,
-) => void;
+  client: IRCClientOptions,
+  config: Record<string, any>,
+) => Promise<void>;
 
 export type RegexHandler = {
   name: string;
@@ -70,8 +79,9 @@ type RegexCollection = {
 export type EventHandlerCallback = (
   context: IRCContext,
   event: IRCMessage,
-  config: BotConfig,
-) => void;
+  client: IRCClientOptions,
+  config: Record<string, any>,
+) => Promise<void>;
 
 export type EventHandler = {
   name: string;
@@ -87,10 +97,12 @@ type IRCContext = {
   sendMessage: (target: string, message: string) => void;
   respond: (contents: string) => void;
   sendRaw: (line: string) => void;
+  database: PouchDB.Database;
   options: IRCClientOptions;
 };
 
 export class Bot extends EventEmitter {
+  private database: PouchDB.Database;
   private IRCManager: IRCClientManager;
   private filters: FilterCollection = {
     irc: [],
@@ -108,15 +120,17 @@ export class Bot extends EventEmitter {
   constructor(private config: BotConfig) {
     super();
 
+    this.database = new PouchDB('coolbot');
+
     this.IRCManager = new IRCClientManager();
 
-    if (config.irc) {
-      config.irc.clients.forEach(client => this.IRCManager.addClient(client));
+    if (config.clients.irc) {
+      config.clients.irc.forEach(client => this.IRCManager.addClient(client));
     }
 
-    this.registerIRCHandlers();
-
-    this.watchPlugins();
+    this.registerIRCHandlers().then(() => {
+      this.watchPlugins();
+    });
   }
 
   start() {
@@ -169,7 +183,7 @@ export class Bot extends EventEmitter {
     return filteredMessage;
   }
 
-  private handleMessage(
+  private async handleMessage(
     type: Protocol,
     context: IRCContext,
     message: IRCMessage,
@@ -178,10 +192,10 @@ export class Bot extends EventEmitter {
 
     const options = context.options;
 
-    const hasBlacklist = !!options.plugins?.blacklist;
-    const hasWhitelist = !!options.plugins?.whitelist;
+    const hasGlobalBlacklist = !!options.plugins?.blacklist;
+    const hasGlobalWhitelist = !!options.plugins?.whitelist;
 
-    const isWhitelisted = (name: string): boolean => {
+    const isGlobalWhitelisted = (name: string): boolean => {
       return !!(
         options.plugins?.whitelist &&
         options.plugins.whitelist.length > 0 &&
@@ -189,7 +203,7 @@ export class Bot extends EventEmitter {
       );
     };
 
-    const isBlacklisted = (name: string): boolean => {
+    const isGlobalBlacklisted = (name: string): boolean => {
       return !!(
         options.plugins?.blacklist &&
         options.plugins.blacklist.length > 0 &&
@@ -197,17 +211,72 @@ export class Bot extends EventEmitter {
       );
     };
 
+    // Check channel and server level permissions before parsing event / command
+    const checkACL = (name: string): boolean => {
+      if (!params) return false;
+
+      const channel = params[0];
+
+      if (
+        (hasGlobalWhitelist && !isGlobalWhitelisted(name)) ||
+        (hasGlobalBlacklist && isGlobalBlacklisted(name))
+      ) {
+        return false;
+      }
+
+      if (options.channels) {
+        let channelIndex = -1;
+
+        for (let i = 0; i <= options.channels.length; i++) {
+          const option = options.channels[i];
+
+          if (
+            typeof option === 'object' &&
+            option.name === channel &&
+            (option.whitelist || option.blacklist)
+          ) {
+            channelIndex = i;
+            break;
+          }
+        }
+
+        if (channelIndex !== -1) {
+          const channelOption = options.channels[channelIndex];
+
+          const blacklist = (<ChannelConfig>channelOption).blacklist;
+          const whitelist = (<ChannelConfig>channelOption).whitelist;
+
+          if (
+            whitelist &&
+            whitelist.length > 0 &&
+            whitelist.indexOf(name) === -1
+          ) {
+            return false;
+          }
+
+          if (
+            blacklist &&
+            blacklist?.length > 0 &&
+            blacklist.indexOf(name) === -1
+          ) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    };
+
+    // Handle generic events via plugins that arent a command or PRIVMSG
     if (command !== 'PRIVMSG') {
-      Object.keys(this.eventHandlers.irc).forEach(key => {
+      Object.keys(this.eventHandlers.irc).forEach(async key => {
         const handler = this.eventHandlers.irc[key];
 
         if (
-          ((hasWhitelist && !isWhitelisted(handler.name)) ||
-            (hasBlacklist && isBlacklisted(handler.name)) ||
-            (!hasBlacklist && !hasWhitelist)) &&
+          checkACL(handler.name) &&
           command?.toUpperCase() === handler.event.toUpperCase()
         ) {
-          handler.handler(context, message, this.config);
+          await handler.handler(context, message, options, this.config.config);
         }
       });
 
@@ -222,26 +291,24 @@ export class Bot extends EventEmitter {
     const commandName = params[1].split(' ')[0].substr(1);
     const commandHandler = this.commands.irc[commandName];
 
+    // Handle non command messages via regex plugins
     if (!isCommand || !commandHandler) {
       Object.keys(this.regexes.irc).forEach(key => {
         const regex = this.regexes.irc[key];
 
         const matches = regex.regex.test(params[1]);
 
-        if (
-          matches &&
-          ((hasWhitelist && !isWhitelisted(regex.name)) ||
-            (hasBlacklist && isBlacklisted(regex.name)) ||
-            (!hasBlacklist && !hasWhitelist))
-        ) {
-          regex.handler(context, message, this.config);
+        if (matches && checkACL(regex.name)) {
+          regex.handler(context, message, options, this.config.config);
         }
       });
     }
 
+    // Event is a command instance, parse event through plugins
     if (isCommand && this.commands.irc[commandName]) {
-      if (hasWhitelist && !isWhitelisted(commandName)) return;
-      if (hasBlacklist && isBlacklisted(commandName)) return;
+      if (!checkACL(commandHandler.name)) {
+        return;
+      }
 
       // command + prefix + space
       const input = params[1].slice(commandName.length + 2);
@@ -250,7 +317,8 @@ export class Bot extends EventEmitter {
         context,
         message,
         input,
-        this.config,
+        options,
+        this.config.config,
       );
     }
   }
@@ -307,6 +375,7 @@ export class Bot extends EventEmitter {
       sendMessage: sendMessage.bind(this),
       sendRaw: sendRaw.bind(this),
       respond: respond.bind(this),
+      database: this.database,
       options,
     };
 
@@ -345,24 +414,30 @@ export class Bot extends EventEmitter {
       });
   }
 
-  private registerIRCHandlers() {
-    this.IRCManager.on('message', (client: IRCClient, message: IRCMessage) => {
-      const context = this.createIRCContext(client, message);
+  private async registerIRCHandlers() {
+    this.IRCManager.on(
+      'message',
+      async (client: IRCClient, message: IRCMessage) => {
+        const context = this.createIRCContext(client, message);
 
-      this.handleMessage('irc', context, message);
-    });
+        this.handleMessage('irc', context, message);
+      },
+    );
 
-    this.IRCManager.on('event', (client: IRCClient, event: IRCMessage) => {
-      const context = this.createIRCContext(client, event);
+    this.IRCManager.on(
+      'event',
+      async (client: IRCClient, event: IRCMessage) => {
+        const context = this.createIRCContext(client, event);
 
-      this.handleMessage('irc', context, event);
-    });
+        this.handleMessage('irc', context, event);
+      },
+    );
 
-    this.IRCManager.on('sent', (client: IRCClient, line: string) => {
+    this.IRCManager.on('sent', async (client: IRCClient, line: string) => {
       console.log('>> ' + line);
     });
 
-    this.IRCManager.on('raw', (client: IRCClient, line: string) => {
+    this.IRCManager.on('raw', async (client: IRCClient, line: string) => {
       console.log('<< ' + line);
     });
   }

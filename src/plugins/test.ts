@@ -28,17 +28,25 @@ export const register: RegisterHandler = ({
   });
 };
 
-const echo: CommandHandlerCallback = ({ respond }, message, input, config) => {
-  respond(`${message.nick}: ${message}`);
+const echo: CommandHandlerCallback = async (
+  { respond },
+  message,
+  input,
+  config,
+) => {
+  respond(`${message.nick}: ${input}`);
 };
 
-const joiner: EventHandlerCallback = ({ sendRaw, sendMessage }, event) => {
+const joiner: EventHandlerCallback = async (
+  { sendRaw, sendMessage },
+  event,
+) => {
   const channel = event.params![1];
 
   sendRaw(`JOIN ${channel}`);
   sendMessage(channel, 'Hello I am here.');
 };
 
-const butts: RegexHandlerCallback = ({ respond }) => {
+const butts: RegexHandlerCallback = async ({ respond }) => {
   respond('butts butts butts');
 };

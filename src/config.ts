@@ -15,17 +15,24 @@ const ConfigParserError = (message: string): Error => {
 export function parseConfigFile(path: string): BotConfig {
   const file: any = JSON.parse(fs.readFileSync(path, { encoding: 'utf-8' }));
 
-  const botConfig: BotConfig = {};
+  const botConfig: BotConfig = {
+    clients: {
+      irc: [],
+    },
+    config: {},
+  };
 
-  if (file.irc && file.irc.clients) {
-    file.irc.clients.forEach((clientConfig: any) => {
+  if (file.config && typeof file.config === 'object') {
+    botConfig.config = file.config;
+  }
+
+  if (file.clients && file.clients.irc) {
+    file.clients.irc.forEach((clientConfig: any) => {
       const parsedConfig = parseIRCClientConfig(clientConfig);
 
-      botConfig.irc = {
-        clients: [],
-      };
+      botConfig.clients.irc = [];
 
-      botConfig.irc.clients.push(parsedConfig);
+      botConfig.clients.irc.push(parsedConfig);
     });
   }
 

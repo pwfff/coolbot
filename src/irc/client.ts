@@ -2,11 +2,19 @@ import { IRCConnection, IRCConnectionOptions } from './connection';
 import { EventEmitter } from 'events';
 import { IRCMessage } from './message';
 
+export type ChannelConfig = {
+  name: string;
+  whitelist?: string[];
+  blacklist?: string[];
+};
+
+export type ChannelOption = string | ChannelConfig;
+
 export type IRCClientOptions = {
   commandPrefix: string;
   name: string;
   password?: string;
-  channels?: string[];
+  channels?: ChannelOption[];
   user: {
     nickname: string;
     username?: string;
@@ -14,7 +22,6 @@ export type IRCClientOptions = {
   };
   connection: IRCConnectionOptions;
   plugins?: {
-    config?: { [key: string]: any };
     whitelist?: string[];
     blacklist?: string[];
   };
@@ -105,12 +112,14 @@ export class IRCClient extends EventEmitter {
     this.connection.writeRaw(line);
   }
 
-  join(channel: string) {
+  join(channel: ChannelOption) {
     if (!this.connection) {
       return;
     }
 
-    this.connection.writeRaw(`JOIN ${channel}`);
+    const name = typeof channel === 'string' ? channel : channel.name;
+
+    this.connection.writeRaw(`JOIN ${name}`);
   }
 
   part(channel: string, message = '') {
@@ -158,7 +167,9 @@ export class IRCClient extends EventEmitter {
     this.emit('registered');
 
     setTimeout(() => {
-      this.options.channels?.forEach(channel => this.join(channel));
+      this.options.channels?.forEach(channel => {
+        this.join(channel);
+      });
     }, 2000);
   }
 
