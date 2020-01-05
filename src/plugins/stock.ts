@@ -21,11 +21,9 @@ export const register: RegisterHandler = ({ registerCommand }) => {
 };
 
 const stockHandler: CommandHandlerCallback = async (
-  { respond },
+  { respond, options, config },
   message,
   input,
-  client,
-  config,
 ) => {
   const apiKey = config.stock;
   const { nick } = message;

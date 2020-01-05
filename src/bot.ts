@@ -45,8 +45,6 @@ export type CommandHandlerCallback = (
   context: IRCContext,
   message: IRCMessage,
   input: string,
-  client: IRCClientOptions,
-  config: Record<string, any>,
 ) => Promise<void>;
 
 export type CommandHandler = {
@@ -62,8 +60,6 @@ type CommandCollection = {
 export type RegexHandlerCallback = (
   context: IRCContext,
   message: IRCMessage,
-  client: IRCClientOptions,
-  config: Record<string, any>,
 ) => Promise<void>;
 
 export type RegexHandler = {
@@ -79,8 +75,6 @@ type RegexCollection = {
 export type EventHandlerCallback = (
   context: IRCContext,
   event: IRCMessage,
-  client: IRCClientOptions,
-  config: Record<string, any>,
 ) => Promise<void>;
 
 export type EventHandler = {
@@ -98,7 +92,9 @@ type IRCContext = {
   respond: (contents: string) => void;
   sendRaw: (line: string) => void;
   database: PouchDB.Database;
+  bot: Bot;
   options: IRCClientOptions;
+  config: Record<string, any>;
 };
 
 export class Bot extends EventEmitter {
@@ -190,6 +186,7 @@ export class Bot extends EventEmitter {
   ): boolean {
     const { params } = message;
 
+    // Message has nothing to check against, probably just a junk event
     if (!params) return true;
 
     const plugins = options.plugins;
@@ -233,10 +230,10 @@ export class Bot extends EventEmitter {
     const cIsBlacklisted = isInList(cBlacklist, name);
     const cIsWhitelisted = isInList(cWhitelist, name);
 
-    if (cWhitelist && !cIsWhitelisted) return false;
+    if (cWhitelist && cIsWhitelisted) return true;
     if (cBlacklist && cIsBlacklisted) return false;
 
-    return true;
+    return false;
   }
 
   private async handleMessage(
@@ -257,7 +254,7 @@ export class Bot extends EventEmitter {
           this.checkACL(handler.name, message, options) &&
           command?.toUpperCase() === handler.event.toUpperCase()
         ) {
-          await handler.handler(context, message, options, this.config.config);
+          await handler.handler(context, message);
         }
       });
 
@@ -270,7 +267,28 @@ export class Bot extends EventEmitter {
     const isCommand = prefix === options.commandPrefix;
 
     const commandName = params[1].split(' ')[0].substr(1);
-    const commandHandler = this.commands.irc[commandName];
+
+    let commandHandler = this.commands.irc[commandName];
+
+    // Check if user is using a shortcut for a handler
+    if (isCommand && !commandHandler) {
+      const commands = Object.keys(this.commands.irc)
+        .filter(c => {
+          return c.startsWith(commandName);
+        })
+        .map(name => this.commands.irc[name]);
+
+      if (commands.length > 1) {
+        const names = commands.map(c => c.name);
+        const response = `Did you mean ${names.join(', ')}?`;
+
+        context.respond(response);
+
+        return;
+      }
+
+      commandHandler = commands[0];
+    }
 
     // Handle non command messages via regex plugins
     if (!isCommand || !commandHandler) {
@@ -280,13 +298,13 @@ export class Bot extends EventEmitter {
         const matches = regex.regex.test(params[1]);
 
         if (matches && this.checkACL(regex.name, message, options)) {
-          regex.handler(context, message, options, this.config.config);
+          regex.handler(context, message);
         }
       });
     }
 
     // Event is a command instance, parse event through plugins
-    if (isCommand && this.commands.irc[commandName]) {
+    if (isCommand && commandHandler) {
       if (!this.checkACL(commandHandler.name, message, options)) {
         return;
       }
@@ -294,13 +312,7 @@ export class Bot extends EventEmitter {
       // command + prefix + space
       const input = params[1].slice(commandName.length + 2);
 
-      this.commands.irc[commandName].handler(
-        context,
-        message,
-        input,
-        options,
-        this.config.config,
-      );
+      commandHandler.handler(context, message, input);
     }
   }
 
@@ -357,6 +369,8 @@ export class Bot extends EventEmitter {
       sendRaw: sendRaw.bind(this),
       respond: respond.bind(this),
       database: this.database,
+      bot: this,
+      config: this.config.config,
       options,
     };
 

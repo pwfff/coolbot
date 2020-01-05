@@ -1,9 +1,9 @@
-☐ shorthand command invocation @started(20-01-05 11:49)
-  - for example: @wea => @weather
+✔ shorthand command invocation @started(20-01-05 11:49) @done(20-01-05 14:22) @lasted(2h33m3s)
+  - for example: wea => weather
   - only needed for commands
-☐ add filters around words that can cause klines @started(20-01-05 11:49)
+☐ add filters around words that can cause klines
 ☐ add support for help text
-  - triggered on invoking @help <command> (maybe?)
+  - triggered on invoking help <command> (maybe?)
   - some commands may not take arguments, dont show help that way, only errors on lack of arguments
 ☐ plugins
   ☐ youtube

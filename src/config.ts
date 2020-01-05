@@ -30,8 +30,6 @@ export function parseConfigFile(path: string): BotConfig {
     file.clients.irc.forEach((clientConfig: any) => {
       const parsedConfig = parseIRCClientConfig(clientConfig);
 
-      botConfig.clients.irc = [];
-
       botConfig.clients.irc.push(parsedConfig);
     });
   }

@@ -10,6 +10,7 @@ type GeoAPIResult = {
 };
 
 type WeatherDoc = {
+  _id: string;
   zip: string;
 };
 
@@ -37,14 +38,19 @@ type WeatherResult = {
 
 export const register: RegisterHandler = ({ registerCommand }) => {
   registerCommand({ name: 'weather', handler: weatherHandler });
+
+  registerCommand({
+    name: 'wet',
+    handler: async ({ respond }) => {
+      respond('wet.');
+    },
+  });
 };
 
 const weatherHandler: CommandHandlerCallback = async (
-  { respond, database },
+  { respond, database, config, options },
   message,
   input,
-  client,
-  config,
 ) => {
   const apiKey = config.weather;
   let { nick } = message;
@@ -64,7 +70,7 @@ const weatherHandler: CommandHandlerCallback = async (
     nick = zip.substr(1);
   }
 
-  const clientName = client.name;
+  const clientName = options.name;
 
   if ((zip || zip !== '') && argument !== 'dontsave') {
     saveZip(database, clientName, nick, zip);
@@ -137,7 +143,19 @@ async function saveZip(
   input: string,
 ) {
   const key = `weather:${clientName}:${nick}`;
-  const current = await db.get<WeatherDoc>(key);
+
+  const doc: WeatherDoc = {
+    _id: key,
+    zip: input,
+  };
+
+  let current;
+
+  try {
+    current = await db.get<WeatherDoc>(key);
+  } catch (e) {
+    current = doc;
+  }
 
   await db.put<WeatherDoc>({ ...current, zip: input });
 }
