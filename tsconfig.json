@@ -13,7 +13,7 @@
     "typeRoots": ["./node_modules/@types", "./typings"]
   },
 
-  "include": ["./src", "./typings"],
+  "include": ["./src", "./typings", "irc-colors.d.ts"],
   "exclude": ["node_modules", "coolbot", ".cache"],
   "lib": ["es2015"]
 }

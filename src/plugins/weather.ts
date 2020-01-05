@@ -82,7 +82,7 @@ const weatherHandler: CommandHandlerCallback = async (
     const result = await getForecast(zip, apiKey);
 
     const getTempString = (temp: number): string => {
-      return `${temp.toFixed(2)}F/${toCelsius(temp)}C`;
+      return `${temp.toFixed(0)}F/${toCelsius(temp).toFixed(0)}C`;
     };
 
     const { temperature, humidity, windGust, windSpeed } = result.currently;
@@ -157,8 +157,8 @@ async function lookupZip(
   }
 }
 
-function toCelsius(temp: number): string {
-  return ((temp - 32) * (5 / 9)).toFixed(2);
+function toCelsius(temp: number): number {
+  return (temp - 32) * (5 / 9);
 }
 
 function toKilometers(miles: number): string {
