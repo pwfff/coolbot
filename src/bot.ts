@@ -183,6 +183,62 @@ export class Bot extends EventEmitter {
     return filteredMessage;
   }
 
+  private checkACL(
+    name: string,
+    message: IRCMessage,
+    options: IRCClientOptions,
+  ): boolean {
+    const { params } = message;
+
+    if (!params) return true;
+
+    const plugins = options.plugins;
+
+    const channel = params[0];
+
+    const isInList = (list: string[] | undefined, name: string): boolean => {
+      return !!(list && list.length > 0 && list.indexOf(name) !== -1);
+    };
+
+    const isWhitelisted = isInList(plugins?.whitelist, name);
+    const isBlacklisted = isInList(plugins?.blacklist, name);
+
+    // If whitelist exists and command isnt in it, acl is false
+    if (plugins?.whitelist && !isWhitelisted) return false;
+
+    // If blacklist and command is in it, acl is false
+    if (plugins?.blacklist && isBlacklisted) return false;
+
+    // If no other command options exist, acl check must be good
+    if (!options.channels) return true;
+
+    // Find channel and check if it has acl's that need to be checked
+    const channelIndex = options.channels.findIndex(option => {
+      return (
+        typeof option === 'object' &&
+        option.name === channel &&
+        (option.whitelist || option.blacklist)
+      );
+    });
+
+    // If no channel acl, acl check is good
+    if (channelIndex === -1) return true;
+
+    // If we have a channel that has acl options, check against those as well
+    const channelOption = options.channels[channelIndex];
+
+    const cBlacklist = (<ChannelConfig>channelOption).blacklist;
+    const cWhitelist = (<ChannelConfig>channelOption).whitelist;
+
+    const cIsBlacklisted = isInList(cBlacklist, name);
+    const cIsWhitelisted = isInList(cWhitelist, name);
+
+    if (cWhitelist && !cIsWhitelisted) return false;
+    if (cBlacklist && cIsBlacklisted) return false;
+
+    return true;
+  }
+
   private async handleMessage(
     type: Protocol,
     context: IRCContext,
@@ -192,88 +248,13 @@ export class Bot extends EventEmitter {
 
     const options = context.options;
 
-    const hasGlobalBlacklist = !!options.plugins?.blacklist;
-    const hasGlobalWhitelist = !!options.plugins?.whitelist;
-
-    const isGlobalWhitelisted = (name: string): boolean => {
-      return !!(
-        options.plugins?.whitelist &&
-        options.plugins.whitelist.length > 0 &&
-        options.plugins.whitelist.indexOf(name) >= 0
-      );
-    };
-
-    const isGlobalBlacklisted = (name: string): boolean => {
-      return !!(
-        options.plugins?.blacklist &&
-        options.plugins.blacklist.length > 0 &&
-        options.plugins.blacklist.indexOf(name) === -1
-      );
-    };
-
-    // Check channel and server level permissions before parsing event / command
-    const checkACL = (name: string): boolean => {
-      if (!params) return false;
-
-      const channel = params[0];
-
-      if (
-        (hasGlobalWhitelist && !isGlobalWhitelisted(name)) ||
-        (hasGlobalBlacklist && isGlobalBlacklisted(name))
-      ) {
-        return false;
-      }
-
-      if (options.channels) {
-        let channelIndex = -1;
-
-        for (let i = 0; i <= options.channels.length; i++) {
-          const option = options.channels[i];
-
-          if (
-            typeof option === 'object' &&
-            option.name === channel &&
-            (option.whitelist || option.blacklist)
-          ) {
-            channelIndex = i;
-            break;
-          }
-        }
-
-        if (channelIndex !== -1) {
-          const channelOption = options.channels[channelIndex];
-
-          const blacklist = (<ChannelConfig>channelOption).blacklist;
-          const whitelist = (<ChannelConfig>channelOption).whitelist;
-
-          if (
-            whitelist &&
-            whitelist.length > 0 &&
-            whitelist.indexOf(name) === -1
-          ) {
-            return false;
-          }
-
-          if (
-            blacklist &&
-            blacklist?.length > 0 &&
-            blacklist.indexOf(name) === -1
-          ) {
-            return false;
-          }
-        }
-      }
-
-      return true;
-    };
-
     // Handle generic events via plugins that arent a command or PRIVMSG
     if (command !== 'PRIVMSG') {
       Object.keys(this.eventHandlers.irc).forEach(async key => {
         const handler = this.eventHandlers.irc[key];
 
         if (
-          checkACL(handler.name) &&
+          this.checkACL(handler.name, message, options) &&
           command?.toUpperCase() === handler.event.toUpperCase()
         ) {
           await handler.handler(context, message, options, this.config.config);
@@ -298,7 +279,7 @@ export class Bot extends EventEmitter {
 
         const matches = regex.regex.test(params[1]);
 
-        if (matches && checkACL(regex.name)) {
+        if (matches && this.checkACL(regex.name, message, options)) {
           regex.handler(context, message, options, this.config.config);
         }
       });
@@ -306,7 +287,7 @@ export class Bot extends EventEmitter {
 
     // Event is a command instance, parse event through plugins
     if (isCommand && this.commands.irc[commandName]) {
-      if (!checkACL(commandHandler.name)) {
+      if (!this.checkACL(commandHandler.name, message, options)) {
         return;
       }
 
