@@ -9,7 +9,11 @@
     "noImplicitAny": true,
     "strict": true,
     "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "typeRoots": ["./node_modules/@types", "./typings"]
   },
+
+  "include": ["./src", "./typings"],
+  "exclude": ["node_modules", "coolbot", ".cache"],
   "lib": ["es2015"]
 }

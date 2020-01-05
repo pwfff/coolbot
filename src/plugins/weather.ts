@@ -1,4 +1,5 @@
 import axios from 'axios';
+import colors from 'irc-colors';
 
 import { RegisterHandler, CommandHandlerCallback } from '../bot';
 
@@ -48,9 +49,13 @@ const weatherHandler: CommandHandlerCallback = async (
   const apiKey = config.weather;
   let { nick } = message;
 
-  if (!apiKey || !nick) {
+  if (!apiKey) {
+    respond('Missing darksky API Key in `config.weather`');
+
     return;
   }
+
+  if (!nick) return;
 
   let [zip, argument] = input.split(' ');
 
@@ -77,7 +82,7 @@ const weatherHandler: CommandHandlerCallback = async (
     const result = await getForecast(zip, apiKey);
 
     const getTempString = (temp: number): string => {
-      return `${temp}F/${toCelsius(temp)}C`;
+      return `${temp.toFixed(2)}F/${toCelsius(temp)}C`;
     };
 
     const { temperature, humidity, windGust, windSpeed } = result.currently;
@@ -89,10 +94,11 @@ const weatherHandler: CommandHandlerCallback = async (
 
     const locationName = result.location.display_name;
 
-    const gust = `${windGust}mph/${toKilometers(windGust)}kph`;
-    const h = humidity * 100;
+    const gust = `${windGust.toFixed(2)}mph/${toKilometers(windGust)}kph`;
+    const h = (humidity * 100).toFixed();
+    const sum = colors.bold(summary);
 
-    const response = `${locationName}: ${currentTemp}(H:${highTemp},L:${lowTemp}), Humidity: ${h}%, ${gust} ${summary}`;
+    const response = `${locationName}: ${currentTemp}(H:${highTemp},L:${lowTemp}), Humidity: ${h}%, ${gust} ${sum}`;
 
     respond(response);
   } catch (e) {
