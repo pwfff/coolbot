@@ -109,8 +109,7 @@ function formattedMCAP(num: number) {
 
   const s = b[1].slice(1);
 
-  let k =
-    b.length === 1 ? 0 : Math.floor(Math.min(<number>(<unknown>s), 14) / 3);
+  let k = b.length === 1 ? 0 : Math.floor(Math.min(parseInt(s, 10), 14) / 3);
   let c = k < 1 ? num : num / Math.pow(10, k * 3);
   let d = (c < 0 ? c : Math.abs(c)).toFixed(1);
   let e = d + ['', 'K', 'M', 'B', 'T'][k];

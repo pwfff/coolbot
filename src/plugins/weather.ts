@@ -38,13 +38,6 @@ type WeatherResult = {
 
 export const register: RegisterHandler = ({ registerCommand }) => {
   registerCommand({ name: 'weather', handler: weatherHandler });
-
-  registerCommand({
-    name: 'wet',
-    handler: async ({ respond }) => {
-      respond('wet.');
-    },
-  });
 };
 
 const weatherHandler: CommandHandlerCallback = async (

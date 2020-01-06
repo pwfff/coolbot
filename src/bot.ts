@@ -25,19 +25,19 @@ export type RegisterHandler = (handlers: {
 
 type Protocol = 'irc';
 
-type Message = IRCMessage | null;
+export type Message = IRCMessage | null;
 
-type FilterHandlerCallback = (
+export type FilterHandlerCallback = (
   message: Message,
   context?: { [key: string]: any },
 ) => Message;
 
-type FilterHandler = {
+export type FilterHandler = {
   name: string;
   handler: FilterHandlerCallback;
 };
 
-type FilterCollection = {
+export type FilterCollection = {
   irc: FilterHandler[];
 };
 

@@ -1,7 +1,7 @@
 ✔ shorthand command invocation @started(20-01-05 11:49) @done(20-01-05 14:22) @lasted(2h33m3s)
   - for example: wea => weather
   - only needed for commands
-☐ add filters around words that can cause klines
+✔ add filters around words that can cause klines @started(20-01-05 14:25) @done(20-01-05 15:09) @lasted(44m33s)
 ☐ add support for help text
   - triggered on invoking help <command> (maybe?)
   - some commands may not take arguments, dont show help that way, only errors on lack of arguments
@@ -10,3 +10,7 @@
   ☐ tell
   ☐ quote
   ☐ tags
+  ☐ dictionary
+  ☐ calc
+  ☐ google
+  ☐ currency converter
