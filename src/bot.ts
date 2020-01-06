@@ -59,6 +59,7 @@ type CommandCollection = {
 
 export type RegexHandlerCallback = (
   context: IRCContext,
+  match: RegExpMatchArray,
   message: IRCMessage,
 ) => Promise<void>;
 
@@ -296,9 +297,10 @@ export class Bot extends EventEmitter {
         const regex = this.regexes.irc[key];
 
         const matches = regex.regex.test(params[1]);
+        const match = params[1].match(regex.regex);
 
-        if (matches && this.checkACL(regex.name, message, options)) {
-          regex.handler(context, message);
+        if (matches && match && this.checkACL(regex.name, message, options)) {
+          regex.handler(context, match, message);
         }
       });
     }
