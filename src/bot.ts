@@ -29,7 +29,7 @@ export type Message = IRCMessage | null;
 
 export type FilterHandlerCallback = (
   message: Message,
-  context?: { [key: string]: any },
+  context: { [key: string]: any },
 ) => Message;
 
 export type FilterHandler = {
@@ -170,11 +170,15 @@ export class Bot extends EventEmitter {
     this.regexes.irc[handler.name] = handler;
   }
 
-  private filterMessage(type: Protocol, message: Message): Message {
+  private filterMessage(
+    type: Protocol,
+    message: Message,
+    context: IRCContext,
+  ): Message {
     const filters = this.filters.irc;
 
     const filteredMessage = filters.reduce((m: Message, filter) => {
-      return message === null ? message : filter.handler(m);
+      return message === null ? message : filter.handler(m, context);
     }, message);
 
     return filteredMessage;
@@ -246,23 +250,21 @@ export class Bot extends EventEmitter {
 
     const options = context.options;
 
-    // Handle generic events via plugins that arent a command or PRIVMSG
-    if (command !== 'PRIVMSG') {
-      Object.keys(this.eventHandlers.irc).forEach(async key => {
-        const handler = this.eventHandlers.irc[key];
+    // Handle generic events via plugins
+    Object.keys(this.eventHandlers.irc).forEach(async key => {
+      const handler = this.eventHandlers.irc[key];
 
-        if (
-          this.checkACL(handler.name, message, options) &&
-          command?.toUpperCase() === handler.event.toUpperCase()
-        ) {
-          await handler.handler(context, message);
-        }
-      });
+      if (
+        this.checkACL(handler.name, message, options) &&
+        command?.toUpperCase() === handler.event.toUpperCase()
+      ) {
+        await handler.handler(context, message);
+      }
+    });
 
+    if (message.command !== 'PRIVMSG' || !params) {
       return;
     }
-
-    if (!params) return;
 
     const prefix = params[1].charAt(0);
     const isCommand = prefix === options.commandPrefix;
@@ -322,13 +324,17 @@ export class Bot extends EventEmitter {
     client: IRCClient,
     message?: IRCMessage,
   ): IRCContext {
+    const filterMessage = (message: Message): Message | undefined => {
+      return this.filterMessage('irc', message, context);
+    };
+
     const sendMessage = (target: string, message: string) => {
       const ircMessage = new IRCMessage();
 
       ircMessage.command = 'PRIVMSG';
       ircMessage.params = [target, message];
 
-      const filteredMessage = this.filterMessage('irc', ircMessage);
+      const filteredMessage = filterMessage(ircMessage);
 
       if (filteredMessage) {
         client.write(filteredMessage);
@@ -343,7 +349,7 @@ export class Bot extends EventEmitter {
       ircMessage.command = 'PRIVMSG';
       ircMessage.params = [message.params[0], contents];
 
-      const filteredMessage = this.filterMessage('irc', ircMessage);
+      const filteredMessage = filterMessage(ircMessage);
 
       if (filteredMessage) {
         client.write(filteredMessage);
@@ -357,7 +363,7 @@ export class Bot extends EventEmitter {
         return;
       }
 
-      const filteredMessage = this.filterMessage('irc', message);
+      const filteredMessage = filterMessage(message);
 
       if (filteredMessage) {
         client.write(filteredMessage);
@@ -366,7 +372,7 @@ export class Bot extends EventEmitter {
 
     const options = client.options;
 
-    const wrapper: IRCContext = {
+    const context: IRCContext = {
       sendMessage: sendMessage.bind(this),
       sendRaw: sendRaw.bind(this),
       respond: respond.bind(this),
@@ -376,7 +382,7 @@ export class Bot extends EventEmitter {
       options,
     };
 
-    return wrapper;
+    return context;
   }
 
   private watchPlugins() {

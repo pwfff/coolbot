@@ -12,14 +12,26 @@ const FILTERED_WORDS = [
   '!tell /x',
 ];
 
-export const register: RegisterHandler = ({
-  registerFilter,
-  registerCommand,
-}) => {
+export const register: RegisterHandler = ({ registerFilter }) => {
   registerFilter({ name: 'spamwords', handler: spamHandler });
+  registerFilter({ name: 'botfilter', handler: botFilter });
 };
 
-const spamHandler: FilterHandlerCallback = (message: Message) => {
+const botFilter: FilterHandlerCallback = (message: Message, { config }) => {
+  if (!message) {
+    return message;
+  }
+
+  const filterBots = config?.filterBots ? config.filterBots : true;
+
+  if (filterBots && message.nick?.includes('bot')) {
+    return null;
+  }
+
+  return message;
+};
+
+const spamHandler: FilterHandlerCallback = (message: Message, { config }) => {
   if (!message) {
     return null;
   }
