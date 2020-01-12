@@ -30,7 +30,7 @@ export function parseConfigFile(path: string): BotConfig {
     file.clients.irc.forEach((clientConfig: any) => {
       const parsedConfig = parseIRCClientConfig(clientConfig);
 
-      botConfig.clients.irc.push(parsedConfig);
+      botConfig.clients.irc!.push(parsedConfig);
     });
   }
 
@@ -91,4 +91,30 @@ function parseIRCConnectionConfig(config: any): IRCConnectionOptions {
   const connectionConfig = config as IRCConnectionOptions;
 
   return connectionConfig;
+}
+
+export function generateConfigFile(path: string) {
+  const config: BotConfig = {
+    clients: {
+      irc: [
+        {
+          name: 'example',
+          commandPrefix: '.',
+          channels: ['#coolbot'],
+          user: {
+            nickname: 'coolbot',
+          },
+          connection: {
+            host: 'irc.example.com',
+            port: 6667,
+          },
+        },
+      ],
+    },
+    config: {},
+  };
+
+  const output = JSON.stringify(config, null, 2);
+
+  fs.writeFileSync(path, output);
 }

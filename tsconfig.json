@@ -10,10 +10,8 @@
     "strict": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "typeRoots": ["./node_modules/@types", "./typings"]
+    "allowJs": true
   },
 
-  "include": ["./src", "./typings", "irc-colors.d.ts"],
-  "exclude": ["node_modules", "coolbot", ".cache"],
   "lib": ["es2015"]
 }

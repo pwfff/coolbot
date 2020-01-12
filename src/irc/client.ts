@@ -2,6 +2,19 @@ import { IRCConnection, IRCConnectionOptions } from './connection';
 import { EventEmitter } from 'events';
 import { IRCMessage } from './message';
 
+const SUPPORTED_CAPS = [
+  'twitch.tv/tags',
+  'twitch.tv/commands',
+  'twitch.tv/membership',
+  'message-tags',
+  'account-tag',
+  'server-time',
+  'batch',
+  'account-notify',
+  'away-notify',
+  'multi-prefix',
+];
+
 export type ChannelConfig = {
   name: string;
   whitelist?: string[];
@@ -66,6 +79,10 @@ export class IRCClient extends EventEmitter {
     this.bindConnectionEvent('line', (line: IRCMessage) => {
       if (!this.connection) {
         return;
+      }
+
+      if (line.command === 'CAP') {
+        this.handleCapRequest(line);
       }
 
       if (line.command === 'PING') {
@@ -161,6 +178,7 @@ export class IRCClient extends EventEmitter {
 
     const { nickname, username, realname } = this.options.user;
 
+    this.connection.writeRaw('CAP LS 302');
     this.connection.writeRaw(`NICK ${nickname}`);
     this.connection.writeRaw(`USER ${username} 0 * ${realname}`);
 
@@ -171,6 +189,31 @@ export class IRCClient extends EventEmitter {
         this.join(channel);
       });
     }, 2000);
+  }
+
+  private handleCapRequest(line: IRCMessage) {
+    if (!line.params) {
+      return;
+    }
+
+    if (line.params[1] === 'LS') {
+      const caps = line.params[2]
+        .split(' ')
+        .filter(cap => SUPPORTED_CAPS.includes(cap))
+        .join(' ');
+
+      if (caps.length === 0) {
+        this.writeRaw('CAP END');
+
+        return;
+      }
+
+      this.writeRaw(`CAP REQ :${caps}`);
+    }
+
+    if (line.params[1] === 'ACK') {
+      this.writeRaw('CAP END');
+    }
   }
 
   private cleanupConnection() {

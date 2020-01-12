@@ -10,6 +10,7 @@ export class IRCMessage {
     public params?: string[],
     public tags?: IRCMessageTags,
     public raw?: string,
+    public context?: Record<string, any>,
   ) {}
 
   static fromLine(line: string): IRCMessage | undefined {

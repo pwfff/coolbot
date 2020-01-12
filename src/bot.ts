@@ -11,7 +11,7 @@ import { IRCMessage } from './irc/message';
 
 export interface BotConfig {
   clients: {
-    irc: IRCClientOptions[];
+    irc?: IRCClientOptions[];
   };
   config: { [key: string]: any };
 }
@@ -99,18 +99,19 @@ type IRCContext = {
 };
 
 export class Bot extends EventEmitter {
-  private database: PouchDB.Database;
   private IRCManager: IRCClientManager;
-  private filters: FilterCollection = {
+
+  database: PouchDB.Database;
+  filters: FilterCollection = {
     irc: [],
   };
-  private commands: CommandCollection = {
+  commands: CommandCollection = {
     irc: {},
   };
-  private regexes: RegexCollection = {
+  regexes: RegexCollection = {
     irc: {},
   };
-  private eventHandlers: EventHandlerCollection = {
+  eventHandlers: EventHandlerCollection = {
     irc: {},
   };
 
@@ -386,7 +387,7 @@ export class Bot extends EventEmitter {
   }
 
   private watchPlugins() {
-    const folderPath = path.join(__dirname, 'plugins');
+    const folderPath = path.join(__dirname, '../plugins');
     const pluginFolder = chokidar.watch(folderPath, {
       persistent: true,
     });
@@ -437,11 +438,13 @@ export class Bot extends EventEmitter {
     );
 
     this.IRCManager.on('sent', async (client: IRCClient, line: string) => {
-      console.log('>> ' + line);
+      if (line.includes('PASS')) return;
+
+      console.log('<< ' + line);
     });
 
     this.IRCManager.on('raw', async (client: IRCClient, line: string) => {
-      console.log('<< ' + line);
+      console.log('>> ' + line);
     });
   }
 }
