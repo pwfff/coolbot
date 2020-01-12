@@ -11,6 +11,7 @@ type GeoAPIResult = {
 
 type WeatherDoc = {
   _id: string;
+  doc_type: string;
   zip: string;
 };
 
@@ -139,6 +140,7 @@ async function saveZip(
 
   const doc: WeatherDoc = {
     _id: key,
+    doc_type: 'weather',
     zip: input,
   };
 

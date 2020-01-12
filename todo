@@ -12,11 +12,13 @@
   ☐ quote
   ☐ tags
   ☐ dictionary
-  ☐ calc
+  ✔ calc @done(20-01-12 16:33)
   ✔ google @done(20-01-12 00:30)
   ☐ currency converter
-  ☐ lastfm
+  ✔ lastfm @done(20-01-12 15:49)
+  ✔ logging @done(20-01-12 14:23)
 ☐ database helpers
 ☐ add support for multiple plugin locations
 ☐ support remote plugins
 ☐ generalize message type to support more protocols
+☐ add message buffer

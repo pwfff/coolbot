@@ -16,6 +16,7 @@ type Message = {
 
 type MessageLog = {
   _id: string;
+  doc_type: string;
   messages: Message[];
 };
 
@@ -40,11 +41,6 @@ export const register: RegisterHandler = ({
     name: 'tell',
     handler: tellCommand,
   });
-
-  registerCommand({
-    name: 'showtells',
-    handler: showTellsCommand,
-  });
 };
 
 const dbhelper = (database: PouchDB.Database): DBHelper => {
@@ -56,6 +52,7 @@ const dbhelper = (database: PouchDB.Database): DBHelper => {
     } catch (e) {
       doc = {
         _id: key,
+        doc_type: 'tell',
         messages: [],
       };
     }
@@ -198,11 +195,5 @@ const tellEventHandler: EventHandlerCallback = async (
   sendMessage(event.nick!, response);
   sendMessage(event.nick!, message.contents);
 };
-
-const showTellsCommand: CommandHandlerCallback = async (
-  { respond, database },
-  message,
-  input,
-) => {};
 
 const createKey = (server: string, nick: string) => `${server}:${nick}`;

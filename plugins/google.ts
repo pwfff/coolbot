@@ -88,7 +88,7 @@ async function getResults(
 
   const url = isImage ? imageURL : baseURL;
 
-  const result = await axios.get(url);
+  const result = await axios.get<Response>(url);
 
   return result.data;
 }

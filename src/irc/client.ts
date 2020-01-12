@@ -188,7 +188,7 @@ export class IRCClient extends EventEmitter {
       this.options.channels?.forEach(channel => {
         this.join(channel);
       });
-    }, 2000);
+    }, 3000);
   }
 
   private handleCapRequest(line: IRCMessage) {

@@ -9,6 +9,8 @@ import { IRCClientOptions, IRCClient, ChannelConfig } from './irc/client';
 import { IRCClientManager } from './irc/manager';
 import { IRCMessage } from './irc/message';
 
+PouchDB.plugin(require('pouchdb-find'));
+
 export interface BotConfig {
   clients: {
     irc?: IRCClientOptions[];
@@ -128,6 +130,10 @@ export class Bot extends EventEmitter {
 
     this.registerIRCHandlers().then(() => {
       this.watchPlugins();
+    });
+
+    this.database.createIndex({
+      index: { fields: ['doc_type'] },
     });
   }
 
@@ -255,9 +261,12 @@ export class Bot extends EventEmitter {
     Object.keys(this.eventHandlers.irc).forEach(async key => {
       const handler = this.eventHandlers.irc[key];
 
+      const cmd = command?.toUpperCase();
+      const evt = handler.event.toUpperCase();
+
       if (
         this.checkACL(handler.name, message, options) &&
-        command?.toUpperCase() === handler.event.toUpperCase()
+        (cmd === evt || evt === '*')
       ) {
         await handler.handler(context, message);
       }

@@ -36,10 +36,7 @@ const inviteHandler: EventHandlerCallback = async ({ sendRaw }, event) => {
   sendRaw(`JOIN ${channel}`);
 };
 
-const newNickHandler: EventHandlerCallback = async (
-  { sendRaw, options },
-  event,
-) => {
+const newNickHandler: EventHandlerCallback = async ({ sendRaw, options }) => {
   const currentNick = options.user.nickname;
 
   const newNick = currentNick + '_';
@@ -50,7 +47,6 @@ const newNickHandler: EventHandlerCallback = async (
 const helpHandler: CommandHandlerCallback = async (
   { bot, sendMessage },
   message,
-  input,
 ) => {
   const commands = Object.keys(bot.commands).join(', ');
 

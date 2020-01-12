@@ -47,7 +47,6 @@ export const register: RegisterHandler = ({
   registerCommand({
     name: 'youtube',
     handler: youtubeHandler,
-    aliases: ['yt'],
   });
 
   registerRegexHandler({

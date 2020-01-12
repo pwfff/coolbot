@@ -3,4 +3,5 @@ node_modules/
 *.log
 test-config.json
 coolbot.config.json
+coolbot*
 coolbot/
