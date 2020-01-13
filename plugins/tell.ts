@@ -120,7 +120,7 @@ const tellCommand: CommandHandlerCallback = async (
   }
 
   const db = dbhelper(database);
-  const key = createKey(options.name, message.nick!);
+  const key = createKey(options.name, inputs[0]);
 
   const messages = await db.getMessages(key);
   const messageCount = messages.messages.length;
