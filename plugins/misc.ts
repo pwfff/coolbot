@@ -48,7 +48,7 @@ const helpHandler: CommandHandlerCallback = async (
   { bot, sendMessage },
   message,
 ) => {
-  const commands = Object.keys(bot.commands).join(', ');
+  const commands = Object.keys(bot.commands.irc).join(', ');
 
   sendMessage(message.nick!, `Available commands: ${commands}`);
 };
