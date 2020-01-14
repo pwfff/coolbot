@@ -47,6 +47,7 @@ export const register: RegisterHandler = ({
   registerCommand({
     name: 'youtube',
     handler: youtubeHandler,
+    aliases: ['yt'],
   });
 
   registerRegexHandler({
@@ -74,10 +75,12 @@ const getYoutubeInfo = async (
   return request.data;
 };
 
-const buildResponse = (info: VideoInfoResult): string => {
+const buildResponse = (info: VideoInfoResult): string | null => {
   const n = new Intl.NumberFormat();
 
   const s = info.items[0];
+
+  if (!s) return null;
 
   const title = colors.bold(s.snippet.localized.title);
 
@@ -180,7 +183,7 @@ const youtubeRegexHandler: RegexHandlerCallback = async (
 
   const chatResponse = buildResponse(info);
 
-  respond(`${message.nick}: ${chatResponse}`);
+  if (!chatResponse) return;
 
-  return;
+  respond(`${message.nick}: ${chatResponse}`);
 };

@@ -285,15 +285,20 @@ export class Bot extends EventEmitter {
 
     // Check if user is using a shortcut for a handler
     if (isCommand && !commandHandler) {
-      const commands = Object.keys(this.commands.irc)
-        .filter(c => {
-          return c.startsWith(commandName);
-        })
-        .map(name => this.commands.irc[name]);
+      const commands = [
+        ...new Set(
+          Object.keys(this.commands.irc)
+            .filter(c => {
+              return c.startsWith(commandName);
+            })
+            .map(c => {
+              return this.commands.irc[c];
+            }),
+        ),
+      ];
 
       if (commands.length > 1) {
-        const names = commands.map(c => c.name);
-        const response = `Did you mean ${names.join(', ')}?`;
+        const response = `Did you mean ${commands.join(', ')}?`;
 
         context.respond(response);
 
