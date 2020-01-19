@@ -46,12 +46,9 @@ const spamHandler: FilterHandlerCallback = (message: Message, { config }) => {
 
   const [, contents] = message.params;
 
-  let filtered = false;
-  FILTERED_WORDS.forEach(word => {
-    if (!filtered && contents.includes(word)) {
-      filtered = true;
-    }
-  });
+  const filtered: boolean =
+    FILTERED_WORDS.filter(word => !filtered && contents.includes(word)).length >
+    0;
 
   const result = filtered ? null : message;
 

@@ -18,12 +18,15 @@ export interface BotConfig {
   config: { [key: string]: any };
 }
 
-export type RegisterHandler = (handlers: {
-  registerFilter(handler: FilterHandler): void;
-  registerCommand(handler: CommandHandler): void;
-  registerEventHandler(handler: EventHandler): void;
-  registerRegexHandler(handler: RegexHandler): void;
-}) => void;
+export type RegisterHandler = (
+  handlers: {
+    registerFilter(handler: FilterHandler): void;
+    registerCommand(handler: CommandHandler): void;
+    registerEventHandler(handler: EventHandler): void;
+    registerRegexHandler(handler: RegexHandler): void;
+  },
+  bot: Bot,
+) => void;
 
 type Protocol = 'irc';
 
@@ -120,9 +123,14 @@ export class Bot extends EventEmitter {
   constructor(private config: BotConfig) {
     super();
 
-    this.database = new PouchDB('coolbot');
-
+    this.database = new PouchDB('http://localhost:3000/db/coolbot');
     this.IRCManager = new IRCClientManager();
+
+    this.database
+      .createIndex({
+        index: { fields: ['doc_type'] },
+      })
+      .then(() => this.database.info());
 
     if (config.clients.irc) {
       config.clients.irc.forEach(client => this.IRCManager.addClient(client));
@@ -130,10 +138,6 @@ export class Bot extends EventEmitter {
 
     this.registerIRCHandlers().then(() => {
       this.watchPlugins();
-    });
-
-    this.database.createIndex({
-      index: { fields: ['doc_type'] },
     });
   }
 
@@ -418,7 +422,7 @@ export class Bot extends EventEmitter {
         const m = require(fileName);
 
         if (m.register) {
-          m.register(handlers);
+          m.register(handlers, this);
         }
       })
       .on('change', (fileName: string) => {
@@ -427,7 +431,7 @@ export class Bot extends EventEmitter {
         const m = require(fileName);
 
         if (m.register) {
-          m.register(handlers);
+          m.register(handlers, this);
         }
       });
   }

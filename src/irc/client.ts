@@ -56,8 +56,8 @@ export class IRCClient extends EventEmitter {
     this.connection = new IRCConnection(this.options.connection);
 
     this.bindConnectionEvent('connected', () => {
-      this.emit('connected');
       this.registerClient();
+      this.emit('connected');
     });
 
     this.bindConnectionEvent('raw', line => {
@@ -83,6 +83,12 @@ export class IRCClient extends EventEmitter {
 
       if (line.command === 'CAP') {
         this.handleCapRequest(line);
+      }
+
+      if (line.command === '376') {
+        this.options.channels?.forEach((channel, i) => {
+          setTimeout(() => this.join(channel), i + 250);
+        });
       }
 
       if (line.command === 'PING') {
@@ -183,12 +189,6 @@ export class IRCClient extends EventEmitter {
     this.connection.writeRaw(`USER ${username} 0 * ${realname}`);
 
     this.emit('registered');
-
-    setTimeout(() => {
-      this.options.channels?.forEach(channel => {
-        this.join(channel);
-      });
-    }, 3000);
   }
 
   private handleCapRequest(line: IRCMessage) {

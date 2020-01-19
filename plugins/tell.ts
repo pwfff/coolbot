@@ -154,10 +154,14 @@ const tellEventHandler: EventHandlerCallback = async (
   const db = dbhelper(database);
   const key = createKey(options.name, event.nick!);
 
-  const log = await db.getMessages(key);
+  try {
+    const log = await db.getMessages(key);
 
-  if (!log.messages || log.messages.length === 0) {
-    return;
+    if (!log.messages || log.messages.length === 0) {
+      return;
+    }
+  } catch (e) {
+    console.log('[!] Database Error in `tell`:', e);
   }
 
   const message = await db.popMessage(key);

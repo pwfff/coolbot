@@ -1,7 +1,9 @@
-node_modules/
 *.db
 *.log
-test-config.json
-coolbot.config.json
-coolbot*
-coolbot/
+*.config.json
+
+config.json
+log.txt
+
+node_modules/
+database/

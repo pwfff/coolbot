@@ -4,6 +4,18 @@ import cli from 'commander';
 
 import { parseConfigFile, generateConfigFile } from './config';
 import { Bot } from './bot';
+import app from './web';
+
+if (process.env.DEBUG_BAD_PLUGINS || false) {
+  process
+    .on('unhandledRejection', (reason, p) => {
+      console.error(reason, 'Unhandled Rejection at Promise', p);
+    })
+    .on('uncaughtException', err => {
+      console.error(err, 'Uncaught Exception thrown');
+      process.exit(1);
+    });
+}
 
 const startBot = (configPath: string) => {
   const botConfig = parseConfigFile(configPath);
@@ -35,9 +47,11 @@ cli
       return;
     }
 
-    startBot(path);
+    app.listen(3000, () => {
+      console.log(`[!] Running Web Server on localhost:3000`);
 
-    return;
+      startBot(path);
+    });
   });
 
 cli.parse(process.argv);

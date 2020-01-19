@@ -36,7 +36,11 @@ const loggerHandler: EventHandlerCallback = async (
     '266',
   ];
 
-  if (!event.command || filteredEvents.includes(event.command)) {
+  if (
+    !event.command ||
+    filteredEvents.includes(event.command) ||
+    event.raw === ''
+  ) {
     return;
   }
 
@@ -46,5 +50,9 @@ const loggerHandler: EventHandlerCallback = async (
     event,
   };
 
-  database.post<LogEntry>(logEntry);
+  try {
+    database.post<LogEntry>(logEntry);
+  } catch (e) {
+    console.log('logger error', e);
+  }
 };
