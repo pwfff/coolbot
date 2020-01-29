@@ -47,7 +47,11 @@ cli
       return;
     }
 
-    startBot(path);
+    app.listen(3000, () => {
+      console.log(`[!] Running Web Server on localhost:3000`);
+
+      startBot(path);
+    });
   });
 
 cli.parse(process.argv);
