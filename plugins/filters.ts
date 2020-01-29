@@ -1,17 +1,5 @@
 import { RegisterHandler, FilterHandlerCallback, Message } from '../src/bot';
 
-const FILTERED_WORDS = [
-  'DCC SEND',
-  '1nj3ct',
-  'thewrestlinggame',
-  'startkeylogger',
-  'hybux',
-  '\\0',
-  '\\x01',
-  '!coz',
-  '!tell /x',
-];
-
 export const register: RegisterHandler = ({ registerFilter }) => {
   registerFilter({ name: 'spamwords', handler: spamHandler });
   registerFilter({ name: 'botfilter', handler: botFilter });
@@ -45,6 +33,18 @@ const spamHandler: FilterHandlerCallback = (message: Message, { config }) => {
   }
 
   const [, contents] = message.params;
+
+  const FILTERED_WORDS = [
+    'DCC SEND',
+    '1nj3ct',
+    'thewrestlinggame',
+    'startkeylogger',
+    'hybux',
+    '\\0',
+    '\\x01',
+    '!coz',
+    '!tell /x',
+  ];
 
   const filtered: boolean =
     FILTERED_WORDS.filter(word => !filtered && contents.includes(word)).length >
