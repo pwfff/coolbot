@@ -89,8 +89,8 @@ const weatherHandler: CommandHandlerCallback = async (
     const { temperatureHigh, temperatureLow, summary } = result.daily.data[0];
 
     const currentTemp = getTempString(temperature);
-    const lowTemp = getTempString(temperatureHigh);
-    const highTemp = getTempString(temperatureLow);
+    const lowTemp = getTempString(temperatureLow);
+    const highTemp = getTempString(temperatureHigh);
 
     const locationName = result.location.display_name;
 
