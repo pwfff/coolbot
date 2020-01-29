@@ -12,7 +12,7 @@ app.use(
   ),
 );
 
-app.get('/', async (req, res) => {
+app.get('/', async (req: any, res: any) => {
   res.send('home');
 });
 
