@@ -13,8 +13,8 @@ const FILTERED_WORDS = [
 ];
 
 export const register: RegisterHandler = ({ registerFilter }) => {
-  registerFilter({ name: 'spamwords', handler: spamHandler });
-  registerFilter({ name: 'botfilter', handler: botFilter });
+  // registerFilter({ name: 'spamwords', handler: spamHandler });
+  // registerFilter({ name: 'botfilter', handler: botFilter });
 };
 
 const botFilter: FilterHandlerCallback = (message: Message, { config }) => {
