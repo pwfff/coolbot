@@ -48,7 +48,7 @@ const spamHandler: FilterHandlerCallback = (message: Message, { config }) => {
 
   let filtered = false;
   for (const word in FILTERED_WORDS) {
-    if (contents.includes(word)) {
+    if (contents.split(' ').includes(word)) {
       filtered = true;
 
       break;

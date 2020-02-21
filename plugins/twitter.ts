@@ -73,7 +73,7 @@ const twitterReHandler: RegexHandlerCallback = async (
       'ccc LLL dd TT ZZZ y',
     ).toHTTP();
 
-    const text = decodeURI(tweet.full_text);
+    const text = decodeURI(tweet.full_text).replace(/(\r\n|\n|\r)/gm, ' ');
     const user = colors.bold(tweet.user.screen_name);
 
     const output = `${timestamp} ${user}: ${text}`;
