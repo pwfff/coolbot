@@ -19,6 +19,7 @@ export const register: RegisterHandler = ({ registerCommand }) => {
   registerCommand({
     name: 'image',
     handler: imageSearchHandler,
+    aliases: ['gis'],
   });
 };
 
