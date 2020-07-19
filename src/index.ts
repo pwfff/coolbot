@@ -40,14 +40,14 @@ cli
 cli
   .command('start <configFile>')
   .description('start coolbot with given configuration file')
-  .action(path => {
+  .action(async path => {
     if (!fs.existsSync(path)) {
       console.log('config file at path does not exist');
 
       return;
     }
 
-    app.listen(3000, () => {
+    (await app()).listen(3000, () => {
       console.log(`[!] Running Web Server on localhost:3000`);
 
       startBot(path);
