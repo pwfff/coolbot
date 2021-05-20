@@ -44,7 +44,7 @@ export class IRCConnection extends EventEmitter {
       this.bindSocketEvent('connect', () => this.onConnect());
     }
 
-    this.socket.setEncoding('utf-8');
+    this.socket.setEncoding('utf8');
 
     this.bindSocketEvent('data', (buffer: Buffer) => this.onData(buffer));
     this.bindSocketEvent('close', () => this.onClose());
@@ -67,7 +67,7 @@ export class IRCConnection extends EventEmitter {
 
     this.emit('sent', line);
 
-    const buffer = Buffer.from(line + '\r\n', 'utf-8');
+    const buffer = Buffer.from(line + '\r\n', 'utf8');
 
     this.socket.write(buffer);
   }
@@ -79,13 +79,13 @@ export class IRCConnection extends EventEmitter {
 
     this.emit('sent', line);
 
-    const buffer = Buffer.from(line + '\r\n', 'utf-8');
+    const buffer = Buffer.from(line + '\r\n', 'utf8');
 
     this.socket.write(buffer);
   }
 
   private onData(buffer: Buffer) {
-    const lines = buffer.toString('utf-8').split('\r\n');
+    const lines = buffer.toString('utf8').split('\r\n');
 
     lines.forEach(line => {
       this.emit('raw', line);
